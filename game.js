@@ -245,7 +245,6 @@ function revealNextHint() {
         newHintItem.classList.add('revealed', 'new-hint');
         newHintItem.textContent = dailyCWE.hints[currentHintIndex];
         setTimeout(() => newHintItem.classList.remove('new-hint'), 500);
-        guessesRemaining--;
         score -= 100;
         updateGameInfo();
     } else {
@@ -265,6 +264,34 @@ function checkGuess() {
     }
 
     if (guess === correctAnswer || guess === dailyCWE.name.toUpperCase()) {
+        endGame(true);
+    } else {
+        guessesRemaining--;
+        updateScore(false);
+        updateGameInfo();
+
+        // Add incorrect animation to revealed hints
+        document.querySelectorAll('.hint-item.revealed').forEach(hint => {
+            hint.classList.add('incorrect');
+            setTimeout(() => hint.classList.remove('incorrect'), 820);
+        });
+
+        if (guessesRemaining <= 0) {
+            endGame(false);
+        } else {
+            resultElement.textContent = "Incorrect guess. Try again!";
+            revealNextHint();
+        }
+    }
+    guessInput.value = '';
+    autocompleteList.innerHTML = '';
+}
+
+function endGame(won) {
+    submitButton.disabled = true;
+    nextHintButton.disabled = true;
+
+    if (won) {
         resultElement.textContent = "Congratulations! You guessed correctly!";
         updateScore(true);
         
@@ -279,71 +306,39 @@ function checkGuess() {
                 hint.classList.remove('correct');
             });
         }, 3000);
-        
-        // Add buttons to start a new game, end for the day, and share on Twitter
-        const buttonContainer = document.createElement('div');
-        buttonContainer.className = 'mt-3';
-        
-        const newGameButton = document.createElement('button');
-        newGameButton.textContent = "Play Another CWE";
-        newGameButton.className = "btn btn-primary me-2";
-        newGameButton.addEventListener('click', () => startNewGame(true));
-        
-        const endDayButton = document.createElement('button');
-        endDayButton.textContent = "End for Today";
-        endDayButton.className = "btn btn-secondary me-2";
-        endDayButton.addEventListener('click', () => endGame(true));
-        
-        const twitterButton = document.createElement('button');
-        twitterButton.textContent = "Share on Twitter";
-        twitterButton.className = "btn btn-info";
-        twitterButton.addEventListener('click', shareOnTwitter);
-        
-        buttonContainer.appendChild(newGameButton);
-        buttonContainer.appendChild(endDayButton);
-        buttonContainer.appendChild(twitterButton);
-        
-        resultElement.appendChild(document.createElement('br'));
-        resultElement.appendChild(buttonContainer);
-        
-        submitButton.disabled = true;
-        nextHintButton.disabled = true;
     } else {
-        resultElement.textContent = "Incorrect guess. Try again!";
-        guessesRemaining--;
-        updateScore(false);
-        updateGameInfo();
-
-        // Add incorrect animation to revealed hints
-        document.querySelectorAll('.hint-item.revealed').forEach(hint => {
-            hint.classList.add('incorrect');
-            setTimeout(() => hint.classList.remove('incorrect'), 820);
-        });
-
-        if (guessesRemaining === 0) {
-            endGame(false);
-        } else {
-            revealNextHint();
-        }
-    }
-    guessInput.value = '';
-    autocompleteList.innerHTML = '';
-}
-
-function endGame(won) {
-    submitButton.disabled = true;
-    nextHintButton.disabled = true;
-    if (!won) {
         resultElement.textContent = `Game over! The correct answer was CWE-${dailyCWE.id}: ${dailyCWE.name}.`;
+        // Reveal all hints
+        dailyCWE.hints.forEach((hint, index) => {
+            const hintItem = document.getElementById(`hint-${index}`);
+            hintItem.classList.remove('hidden');
+            hintItem.classList.add('revealed');
+            hintItem.textContent = hint;
+        });
     }
     
-    // Add a button to start a new game
+    // Add buttons for new game and sharing
+    const buttonContainer = document.createElement('div');
+    buttonContainer.className = 'mt-3';
+    
     const newGameButton = document.createElement('button');
-    newGameButton.textContent = "Play Again";
-    newGameButton.className = "btn btn-primary mt-3";
+    newGameButton.textContent = "Play Another CWE";
+    newGameButton.className = "btn btn-primary me-2";
     newGameButton.addEventListener('click', () => startNewGame(true));
+    
+    const twitterButton = document.createElement('button');
+    twitterButton.textContent = "Share on Twitter";
+    twitterButton.className = "btn btn-info";
+    twitterButton.addEventListener('click', shareOnTwitter);
+    
+    buttonContainer.appendChild(newGameButton);
+    buttonContainer.appendChild(twitterButton);
+    
     resultElement.appendChild(document.createElement('br'));
-    resultElement.appendChild(newGameButton);
+    resultElement.appendChild(buttonContainer);
+
+    // Disable the guess input
+    guessInput.disabled = true;
 }
 
 function startNewGame(newDay = false) {
@@ -379,6 +374,9 @@ function startNewGame(newDay = false) {
     // Reset previous guesses
     previousGuesses = [];
     updatePreviousGuessesList();
+
+    // Enable the guess input
+    guessInput.disabled = false;
 }
 
 function updateScore(correct) {
