@@ -245,7 +245,7 @@ function revealNextHint() {
         newHintItem.classList.add('revealed', 'new-hint');
         newHintItem.textContent = dailyCWE.hints[currentHintIndex];
         setTimeout(() => newHintItem.classList.remove('new-hint'), 500);
-        score -= 100;
+        updateScore(false, true); // Deduct points for revealing a hint
         updateGameInfo();
     } else {
         nextHintButton.disabled = true;
@@ -257,20 +257,19 @@ function checkGuess() {
     const guess = guessInput.value.trim().toUpperCase();
     const correctAnswer = `CWE-${dailyCWE.id}`;
     
-    // Add the guess to previousGuesses array only if it's not already there
     if (!previousGuesses.includes(guess)) {
         previousGuesses.push(guess);
         updatePreviousGuessesList();
     }
 
     if (guess === correctAnswer || guess === dailyCWE.name.toUpperCase()) {
+        updateScore(true);
         endGame(true);
     } else {
         guessesRemaining--;
         updateScore(false);
         updateGameInfo();
 
-        // Add incorrect animation to revealed hints
         document.querySelectorAll('.hint-item.revealed').forEach(hint => {
             hint.classList.add('incorrect');
             setTimeout(() => hint.classList.remove('incorrect'), 820);
@@ -377,13 +376,22 @@ function startNewGame(newDay = false) {
 
     // Enable the guess input
     guessInput.disabled = false;
+
+    // Reset score
+    score = 1000;
+    updateGameInfo();
 }
 
-function updateScore(correct) {
+function updateScore(correct, revealedHint = false) {
     if (correct) {
-        score += 500; // Add points for correct guess
+        // Calculate bonus points based on remaining guesses and unused hints
+        const unusedHints = dailyCWE.hints.length - (currentHintIndex + 1);
+        const bonusPoints = (guessesRemaining * 100) + (unusedHints * 50);
+        score += 500 + bonusPoints; // Base points for correct guess + bonus
+    } else if (revealedHint) {
+        score = Math.max(0, score - 50); // Deduct 50 points for revealing a hint
     } else {
-        score = Math.max(0, score - 100); // Deduct points for incorrect guess, but don't go below 0
+        score = Math.max(0, score - 100); // Deduct 100 points for incorrect guess
     }
     scoreElement.textContent = score;
 }
