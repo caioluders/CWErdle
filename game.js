@@ -170,6 +170,14 @@ function generateHints(cwe) {
 
     // Always include the description as the last hint
     hints.push(`Description: ${cwe.description}`);
+    // Remove any mention of the current CWE from hints
+    hints = hints.map(hint => {
+        // Remove CWE ID
+        let sanitizedHint = hint.replace(new RegExp(`CWE-${cwe.id}`, 'gi'), '[REDACTED]');
+        // Remove CWE name
+        sanitizedHint = sanitizedHint.replace(new RegExp(cwe.name, 'gi'), '[REDACTED]');
+        return sanitizedHint;
+    });
 
     return hints;
 }
